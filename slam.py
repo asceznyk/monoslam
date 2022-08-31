@@ -16,11 +16,16 @@ class SLAM:
         self.mapp = Map() ## this has frames
 
     def process_frame(self, img):
-        frame = Frame(img, self.mapp) 
+        frame = Frame(img, self.mapp)
         if frame.id == 0: 
             self.P, self.K = init_cam_intrinsics(img, self.focal_length)
             print(self.P)
             return
+
+        f1 = self.mapp.frames[-1]
+        f2 = self.mapp.frames[-2]
+
+
 
 def main(video_path, focal_length=910):
     cap = cv2.VideoCapture(video_path)

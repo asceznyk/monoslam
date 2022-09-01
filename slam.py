@@ -13,10 +13,11 @@ from mapping import *
 class SLAM:
     def __init__(self, focal_length):
         self.focal_length = focal_length
-        self.mapp = Map() ## this has frames
+        self.mapp = Map() 
+        self.orb = cv2.ORB_create()
 
     def process_frame(self, img):
-        frame = Frame(self.mapp, img)
+        frame = Frame(self.mapp, self.orb, img)
         if frame.id == 0: 
             self.P, self.K = init_cam_intrinsics(img, self.focal_length)
             print(self.P)

@@ -3,12 +3,12 @@ import numpy as np
 
 from skimage.measure import ransac
 
-from utils import FundamentalMatrixTransform #, calc_rt
+from utils import EssentialMatrixTransform, decompose_essential_matrix, normalize, add_ones 
 
 def ext_features(img, max_corners=3000):
     orb = cv2.ORB_create()
     pts = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8), max_corners, qualityLevel=0.01, minDistance=7)
-    kps, des = orb.compute(img, [cv2.KeyPoint(p[0][0], p[0][1], size=20) for p in pts])
+    kps, des = orb.compute(img, [cv2.KeyPoint(x=p[0][0], y=p[0][1], size=20) for p in pts])
     return np.array([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
 def match_frames(f1, f2):
@@ -18,7 +18,7 @@ def match_frames(f1, f2):
     good_pts = []
     idx1, idx2 = [], []
     for m, n in matches:
-        if m.distance < 0.75 * n.distance:
+        if m.distance < 0.75*n.distance:
             p1 = f1.kps[m.queryIdx]
             p2 = f2.kps[m.trainIdx]
 
@@ -35,32 +35,41 @@ def match_frames(f1, f2):
     idx1 = np.array(idx1)
     idx2 = np.array(idx2)
 
-    print(good_pts[:, 0].shape)
-
     model, inliers = ransac(
         (good_pts[:,0], good_pts[:,1]),
-        FundamentalMatrixTransform,
+        EssentialMatrixTransform,
         min_samples=8,
         residual_threshold=0.02,
         max_trials=100
     )
 
-    print(model, inliers)
+    print(good_pts[inliers].shape, good_pts[inliers].shape)
 
-    return idx1[inliers], idx2[inliers] #, calc_rt(model.params)
+    return idx1[inliers], idx2[inliers], decompose_essential_matrix(model.params, add_ones(good_pts[inliers][:,0]), add_ones(good_pts[inliers][:,1]))
 
 class Frame:
-    def __init__(self, mapp, img, K=None, pose=np.eye(4)):
+    def __init__(self, mapp, img, K=None, pose=np.eye(4), fid=None):
         self.K = np.array(K) if K is not None else K
         self.pose = np.array(pose)
         self.img = np.array(img)
         self.mapp = mapp
 
-        mapp.add_frame(self)
-        self.id = len(mapp.frames)-1 
+        self.id = fid if fid is not None else mapp.add_frame(self)
 
         if self.img is not None:
-            self.kps, self.des = ext_features(self.img)
+            self.kppx, self.des = ext_features(self.img)
+
+    @property
+    def KI(self):
+        if not hasattr(self, '_KI'):
+            self._KI = np.linalg.inv(self.K)
+        return self._KI
+
+    @property
+    def kps(self):
+        if not hasattr(self, '_kps'):
+            self._kps = normalize(self.KI, self.kppx)
+        return self._kps
 
 
 

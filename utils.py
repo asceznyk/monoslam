@@ -1,16 +1,55 @@
 import cv2
 import numpy as np
 
-def init_cam_intrinsics(img, f):
-    w, h = img.shape[1], img.shape[0]
-    P = np.array([
-        [f, 0, w//2, 0],
-        [0, f, h//2, 0],
-        [0, 0, 1, 0],
-    ], dtype=np.float64)
-    return P, P[:3, :3]
+def add_ones(x):
+    if len(x.shape) == 1: 
+        return np.concatenate([x, np.array([1.0])], axis=0)
+    return np.column_stack([x, np.ones(x.shape[0])])
 
-class FundamentalMatrixTransform(object):
+def normalize(KI, pts):
+    return (KI @ add_ones(pts).T).T[:, :2]
+
+def in_front_of_both_cameras(pts1, pts2, R, t):
+    RI = R
+    for first, second in zip(pts1, pts2):
+        first_z = (R[0]-second[0]*R[2]) @ t / (R[0]-second[0]*R[2]) @ second
+        first_3d_point = np.array([first[0]*first_z, second[0]*first_z, first_z]) 
+        second_3d_point = (R.T @ first_3d_point) - (R.T @ t)
+
+        if first_3d_point[2] < 0 or second_3d_point[2] < 0:
+            return False
+
+    return True
+
+def pose_rt(R, t):
+    r_pose = np.eye(4)
+    r_pose[:3, :3] = R
+    r_pose[:3, 3] = t
+    return r_pose
+
+def skew_mat(x):
+    return np.array([[0,-x[3],x[2]], [x[3],0,-x[1]], [-x[2],x[1],0]])
+
+def decompose_essential_matrix(E, pts1, pts2):
+    W = np.array([[0,-1,0], [1,0,0], [0,0,1]])
+    U, S, VT = np.linalg.svd(E)
+    
+    if np.linalg.det(U) < 0:
+        U *= -1.0
+    if np.linalg.det(VT) < 0:
+        VT *= -1.0
+
+    R = U @ W @ VT
+    if np.sum(R.diagonal()) < 0:
+        R = U @ W.T @ VT
+
+    t = U[:, 2]
+    if t[2] < 0:
+        t *= -1.0
+
+    return np.linalg.inv(pose_rt(R, t))
+
+class EssentialMatrixTransform(object):
     def __init__(self):
         self.params = np.eye(3)
 

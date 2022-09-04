@@ -14,10 +14,9 @@ class SLAM:
     def __init__(self, focal_length):
         self.focal_length = focal_length
         self.mapp = Map() 
-        self.orb = cv2.ORB_create()
 
     def process_frame(self, img):
-        frame = Frame(self.mapp, self.orb, img)
+        frame = Frame(self.mapp, img)
         if frame.id == 0: 
             self.P, self.K = init_cam_intrinsics(img, self.focal_length)
             print(self.P)
@@ -25,6 +24,8 @@ class SLAM:
 
         f1 = self.mapp.frames[-1]
         f2 = self.mapp.frames[-2]
+
+        match_frames(f1, f2)
 
 def main(video_path, focal_length=910):
     cap = cv2.VideoCapture(video_path)

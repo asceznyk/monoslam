@@ -2,8 +2,9 @@ import cv2
 import numpy as np
 
 from skimage.measure import ransac
+from scipy.spatial import cKDTree
 
-from utils import EssentialMatrixTransform, decompose_essential_matrix, normalize, add_ones 
+from utils import EssentialMatrixTransform, calc_rt, normalize, add_ones 
 
 def ext_features(img, max_corners=3000):
     orb = cv2.ORB_create()
@@ -19,13 +20,13 @@ def match_frames(f1, f2):
     idx1, idx2 = [], []
     for m, n in matches:
         if m.distance < 0.75*n.distance:
-            p1 = f1.kps[m.queryIdx]
-            p2 = f2.kps[m.trainIdx]
+            p1, u1 = f1.kps[m.queryIdx], f1.kppx[m.queryIdx]
+            p2, u2 = f2.kps[m.trainIdx], f2.kppx[m.trainIdx]
 
             if m.distance < 32 and m.queryIdx not in idx1 and m.trainIdx not in idx2:
                 idx1.append(m.queryIdx)
                 idx2.append(m.trainIdx)
-                good_pts.append((p1, p2))
+                good_pts.append((p1, p2, u1, u2))
 
     assert(len(good_pts) >= 8)
     assert(len(set(idx1)) == len(idx1))
@@ -39,13 +40,11 @@ def match_frames(f1, f2):
         (good_pts[:,0], good_pts[:,1]),
         EssentialMatrixTransform,
         min_samples=8,
-        residual_threshold=0.02,
+        residual_threshold=0.01,
         max_trials=100
     )
 
-    print(good_pts[inliers].shape, good_pts[inliers].shape)
-
-    return idx1[inliers], idx2[inliers], decompose_essential_matrix(model.params, add_ones(good_pts[inliers][:,0]), add_ones(good_pts[inliers][:,1]))
+    return idx1[inliers], idx2[inliers], calc_rt(model.params, f1.K, f2.K, good_pts[inliers][:,2], good_pts[inliers][:,3])
 
 class Frame:
     def __init__(self, mapp, img, K=None, pose=np.eye(4), fid=None):
@@ -59,6 +58,8 @@ class Frame:
         if self.img is not None:
             self.kppx, self.des = ext_features(self.img)
 
+        self.pts = [None] * len(self.kppx)
+
     @property
     def KI(self):
         if not hasattr(self, '_KI'):
@@ -70,6 +71,12 @@ class Frame:
         if not hasattr(self, '_kps'):
             self._kps = normalize(self.KI, self.kppx)
         return self._kps
+
+    @property
+    def kd(self):
+        if not hasattr(self, '_kd'):
+            self._kd = cKDTree(self.kppx)
+        return self._kd
 
 
 

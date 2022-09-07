@@ -32,7 +32,7 @@ class SLAM:
         f2 = self.mapp.frames[-2] 
 
         idx1, idx2, pose = match_frames(f1, f2)
-        f1.pose = pose @ f2.pose
+        f1.pose = f2.pose @ pose
 
 def main(video_path, focal_length=524):
     cap = cv2.VideoCapture(video_path)

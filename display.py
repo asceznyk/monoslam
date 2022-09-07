@@ -59,7 +59,7 @@ class DisplayMap:
     def paint(self, mapp):
         poses = []
         for f in mapp.frames:
-            poses.append(np.linalg.inv(f.pose))
+            poses.append(f.pose)
         self.q.put(np.array(poses))
 
 

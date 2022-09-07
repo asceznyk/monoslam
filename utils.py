@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from constants import *
+
 def add_ones(x):
     if len(x.shape) == 1: 
         return np.concatenate([x, np.array([1.0])], axis=0)
@@ -8,18 +10,6 @@ def add_ones(x):
 
 def normalize(KI, pts):
     return (KI @ add_ones(pts).T).T[:, :2]
-
-def in_front_of_both_cameras(pts1, pts2, R, t):
-    RI = R
-    for first, second in zip(pts1, pts2):
-        first_z = (R[0]-second[0]*R[2]) @ t / (R[0]-second[0]*R[2]) @ second
-        first_3d_point = np.array([first[0]*first_z, second[0]*first_z, first_z]) 
-        second_3d_point = (R.T @ first_3d_point) - (R.T @ t)
-
-        if first_3d_point[2] < 0 or second_3d_point[2] < 0:
-            return False
-
-    return True
 
 def pose_rt(R, t):
     r_pose = np.eye(4)
@@ -71,7 +61,7 @@ def calc_rt(E, K1, K2, q1, q2):
 
     j, z, s = max(sumzs, key=lambda x: x[1])
     R, t = pairs[j]
-    return np.linalg.inv(pose_rt(R, s*t))
+    return pose_rt(R, t)
 
 class EssentialMatrixTransform(object):
     def __init__(self):
@@ -82,7 +72,7 @@ class EssentialMatrixTransform(object):
 
     def estimate(self, src, dst):
         assert src.shape == dst.shape
-        assert src.shape[0] >= 8
+        assert src.shape[0] >= RANSAC_MIN_SAMPLES
 
         A = np.ones((src.shape[0], 9))
         A[:, :2] *= src

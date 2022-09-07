@@ -4,6 +4,7 @@ import numpy as np
 from skimage.measure import ransac
 from scipy.spatial import cKDTree
 
+from constants import *
 from utils import EssentialMatrixTransform, calc_rt, normalize, add_ones 
 
 def ext_features(img, max_corners=3000):
@@ -19,7 +20,7 @@ def match_frames(f1, f2):
     good_pts = []
     idx1, idx2 = [], []
     for m, n in matches:
-        if m.distance < 0.75*n.distance:
+        if m.distance < 0.7 * n.distance:
             p1, u1 = f1.kps[m.queryIdx], f1.kppx[m.queryIdx]
             p2, u2 = f2.kps[m.trainIdx], f2.kppx[m.trainIdx]
 
@@ -28,7 +29,7 @@ def match_frames(f1, f2):
                 idx2.append(m.trainIdx)
                 good_pts.append((p1, p2, u1, u2))
 
-    assert(len(good_pts) >= 8)
+    assert(len(good_pts) >= RANSAC_MIN_SAMPLES)
     assert(len(set(idx1)) == len(idx1))
     assert(len(set(idx2)) == len(idx2))
 
@@ -37,11 +38,11 @@ def match_frames(f1, f2):
     idx2 = np.array(idx2)
 
     model, inliers = ransac(
-        (good_pts[:,0], good_pts[:,1]),
+        (good_pts[:, 0], good_pts[:, 1]),
         EssentialMatrixTransform,
-        min_samples=8,
-        residual_threshold=0.01,
-        max_trials=100
+        min_samples=RANSAC_MIN_SAMPLES,
+        residual_threshold=RANSAC_RES_THRESH,
+        max_trials=RANSAC_MAX_TRIALS
     )
 
     return idx1[inliers], idx2[inliers], calc_rt(model.params, f1.K, f2.K, good_pts[inliers][:,2], good_pts[inliers][:,3])

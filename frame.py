@@ -34,7 +34,7 @@ def match_frames(f1, f2):
     assert(len(set(idx2)) == len(idx2))
 
     good_pts = np.array(good_pts)
-    idx1 = np.array(idx1)
+    idx1 = np.array(idx1
     idx2 = np.array(idx2)
 
     model, inliers = ransac(

@@ -19,20 +19,33 @@ class SLAM:
         self.H = H
         self.K = K
 
-        print(self.K)
-
-        self.mapp = Map() 
+        self.graph = Map() 
 
     def process_frame(self, img):
-        frame = Frame(self.mapp, img, self.K)
+        frame = Frame(self.graph, img, self.K)
         if frame.id == 0:
             return
 
-        f1 = self.mapp.frames[-1]
-        f2 = self.mapp.frames[-2] 
+        f1 = self.graph.frames[-1]
+        f2 = self.graph.frames[-2] 
 
         idx1, idx2, pose = match_frames(f1, f2)
         f1.pose = f2.pose @ pose
+
+        for i, idx in enumerate(idx2):
+            if f1.pts[idx1[i]] is None and f2.pts[idx] is not None: 
+                f2.pts[idx].add(f1, idx1[i])
+
+        if len(self.graph.points) > 0:
+            map_points = [add_ones(p) for p in self.graph.points]
+            pts2d = ((self.K @ f1.pose[:3]) @ map_points.T).T
+            pts2d = pts2d[:,:2] / pts2d[:,2:]
+
+            good_pts =  (pts2d[:,0] > 0) & (pts2d[:,0] < self.W) & \
+                        (pts2d[:,1] > 0) & (pts2d[:,1] < self.H)
+
+
+        print(f1.des.shape)
 
 def main(video_path, focal_length=524):
     cap = cv2.VideoCapture(video_path)
@@ -69,7 +82,7 @@ def main(video_path, focal_length=524):
             slam.process_frame(img)
         f += 1
 
-        disp_map.paint(slam.mapp)
+        disp_map.paint(slam.graph)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

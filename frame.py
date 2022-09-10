@@ -34,7 +34,7 @@ def match_frames(f1, f2):
     assert(len(set(idx2)) == len(idx2))
 
     good_pts = np.array(good_pts)
-    idx1 = np.array(idx1
+    idx1 = np.array(idx1)
     idx2 = np.array(idx2)
 
     model, inliers = ransac(
@@ -48,13 +48,13 @@ def match_frames(f1, f2):
     return idx1[inliers], idx2[inliers], calc_rt(model.params, f1.K, f2.K, good_pts[inliers][:,2], good_pts[inliers][:,3])
 
 class Frame:
-    def __init__(self, mapp, img, K=None, pose=np.eye(4), fid=None):
+    def __init__(self, graph, img, K=None, pose=np.eye(4), fid=None):
         self.K = np.array(K) if K is not None else K
         self.pose = np.array(pose)
         self.img = np.array(img)
-        self.mapp = mapp
+        self.graph = graph
 
-        self.id = fid if fid is not None else mapp.add_frame(self)
+        self.id = fid if fid is not None else graph.add_frame(self)
 
         if self.img is not None:
             self.kppx, self.des = ext_features(self.img)

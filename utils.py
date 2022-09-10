@@ -3,6 +3,10 @@ import numpy as np
 
 from constants import *
 
+def hamming_distance(a, b):
+    r = (1 << np.arange(8))[:,None]
+    return np.count_nonzero(((a ^ b) & r) != 0)
+
 def add_ones(x):
     if len(x.shape) == 1: 
         return np.concatenate([x, np.array([1.0])], axis=0)
@@ -12,10 +16,10 @@ def normalize(KI, pts):
     return (KI @ add_ones(pts).T).T[:, :2]
 
 def pose_rt(R, t):
-    r_pose = np.eye(4)
-    r_pose[:3, :3] = R
-    r_pose[:3, 3] = t
-    return r_pose
+    P = np.eye(4)
+    P[:3, :3] = R
+    P[:3, 3] = t
+    return P
 
 def skew_mat(x):
     return np.array([[0,-x[2],x[1]], [x[2],0,-x[0]], [-x[1],x[0],0]])
@@ -36,20 +40,9 @@ def calc_rt(E, K1, K2, q1, q2):
         pose = pose_rt(R, t)
         hom_q1 = cv2.triangulatePoints(P1, P2 @ pose, q1.T, q2.T) 
         hom_q2 = pose @ hom_q1
-
         uhom_q1 = hom_q1[:3, :] / (hom_q1[3, :] + 1e-24)
         uhom_q2 = hom_q2[:3, :] / (hom_q2[3, :] + 1e-24)
-
-        sum_of_pos_z_q1 = sum(uhom_q1[2, :] > 0)
-        sum_of_pos_z_q2 = sum(uhom_q2[2, :] > 0)
-
-        relative_scale = np.mean(
-            np.linalg.norm(uhom_q1.T[:-1] - uhom_q1.T[1:], axis=-1) / 
-            np.linalg.norm(uhom_q2.T[:-1] - uhom_q2.T[1:], axis=-1),
-            dtype=np.float128
-        ) ##ashamed of this but it's a quick fix!
-
-        return sum_of_pos_z_q1 + sum_of_pos_z_q2, relative_scale
+        return sum(uhom_q1[2,:] > 0) + sum(uhom_q2[2,:] > 0)
 
     R1, R2, t = decompose_matrix(E)
     t = np.squeeze(t)
@@ -57,9 +50,9 @@ def calc_rt(E, K1, K2, q1, q2):
     pairs = [[R1, t], [R1, -t], [R2, t], [R2, -t]]
     sumzs = []
     for i, [R, t] in enumerate(pairs): 
-        sumzs.append((i, *sum_z_cal_relative_scale(R, t)))
+        sumzs.append((i, sum_z_cal_relative_scale(R, t)))
 
-    j, z, s = max(sumzs, key=lambda x: x[1])
+    j, _ = max(sumzs, key=lambda x: x[1])
     R, t = pairs[j]
     return pose_rt(R, t)
 

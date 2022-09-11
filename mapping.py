@@ -1,17 +1,22 @@
 import numpy as np
 
+from utils import add_ones, hamming_distance
+
 class Point:
-    def __init__(self, graph, loc, pid=None):
-        self.graph = graph
-        self.loc = np.array(loc)
+    def __init__(self, graph, pt, color, pid=None):
+        self.pt = np.array(pt)
+        self.color = color
         self.frames = []
         self.idxs = []
         self.id = pid if pid is not None else graph.add_point(self)
 
-    def orb(self):
-        return [f.des[i] for f, i in zip(self.frame, self.idxs)]
+    def homogenous(self):
+        return add_ones(self.pt)
 
-    def orb_dist(self, des):
+    def orb(self):
+        return [f.des[i] for f, i in zip(self.frames, self.idxs)]
+
+    def orb_distance(self, des):
         return min([hamming_distance(o, des) for o in self.orb()])
 
     def add(self, frame, idx):

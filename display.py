@@ -46,21 +46,30 @@ class DisplayMap:
         self.dcam.Activate(self.scam)
 
         if self.state is not None:
-            if self.state.shape[0] >= 2:
+            if self.state[0].shape[0] >= 2:
                 gl.glColor3f(1.0, 0.0, 0.0)
-                pangolin.DrawCameras(self.state[:-1])
+                pangolin.DrawCameras(self.state[0][:-1])
 
-            if self.state.shape[0] >= 1:
+            if self.state[0].shape[0] >= 1:
                 gl.glColor3f(0.0, 1.0, 0.0)
-                pangolin.DrawCameras(self.state[-1:])
+                pangolin.DrawCameras(self.state[0][-1:])
+
+            if self.state[1].shape[0] != 0:
+                gl.glPointSize(5)
+                gl.glColor3f(1.0, 0.0, 0.0)
+                pangolin.DrawPoints(self.state[1], self.state[2])
 
         pangolin.FinishFrame()
 
-    def paint(self, mapp):
-        poses = []
-        for f in mapp.frames:
-            poses.append(f.pose)
-        self.q.put(np.array(poses))
+    def paint(self, graph):
+        poses, points, colors = [], [], []
+        for p in graph.points:
+            points.append(p.pt)
+            colors.append(p.color)
+        for f in graph.frames:
+            poses.append(np.linalg.inv(f.pose))
+
+        self.q.put((np.array(poses), np.array(points), np.array(colors)/255.0))
 
 
 

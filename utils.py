@@ -15,6 +15,18 @@ def add_ones(x):
 def normalize(KI, pts):
     return (KI @ add_ones(pts).T).T[:, :2]
 
+def triangulate_pts(pose1, pose2, pts1, pts2):
+    ret = np.zeros((pts1.shape[0], 4))
+    for i, p in enumerate(zip(pts1, pts2)):
+        A = np.zeros((4,4))
+        A[0] = p[0][0] * pose1[2] - pose1[0]
+        A[1] = p[0][1] * pose1[2] - pose1[1]
+        A[2] = p[1][0] * pose2[2] - pose2[0]
+        A[3] = p[1][1] * pose2[2] - pose2[1]
+        _, _, VT = np.linalg.svd(A)
+        ret[i] = VT[3]
+    return ret
+
 def pose_rt(R, t):
     P = np.eye(4)
     P[:3, :3] = R
@@ -38,7 +50,7 @@ def calc_rt(E, K1, K2, q1, q2):
 
     def sum_z_cal_relative_scale(R, t):
         pose = pose_rt(R, t)
-        hom_q1 = cv2.triangulatePoints(P1, P2 @ pose, q1.T, q2.T) 
+        hom_q1 = triangulate_pts(P1, P2 @ pose, q1, q2).T 
         hom_q2 = pose @ hom_q1
         uhom_q1 = hom_q1[:3, :] / (hom_q1[3, :] + 1e-24)
         uhom_q2 = hom_q2[:3, :] / (hom_q2[3, :] + 1e-24)
@@ -54,7 +66,7 @@ def calc_rt(E, K1, K2, q1, q2):
 
     j, _ = max(sumzs, key=lambda x: x[1])
     R, t = pairs[j]
-    return pose_rt(R, t)
+    return np.linalg.inv(pose_rt(R, t))
 
 class EssentialMatrixTransform(object):
     def __init__(self):

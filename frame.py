@@ -45,6 +45,8 @@ def match_frames(f1, f2):
         max_trials=RANSAC_MAX_TRIALS
     )
 
+    print(f"Matches {len(f1.des)} -> {len(matches)} -> {len(inliers)} -> {sum(inliers)}")
+
     return idx1[inliers], idx2[inliers], calc_rt(model.params, f1.K, f2.K, good_pts[inliers][:,2], good_pts[inliers][:,3])
 
 class Frame:

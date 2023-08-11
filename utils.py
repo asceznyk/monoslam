@@ -8,7 +8,7 @@ def hamming_distance(a, b):
     return np.count_nonzero(((a ^ b) & r) != 0)
 
 def add_ones(x):
-    if len(x.shape) == 1: 
+    if len(x.shape) == 1:
         return np.concatenate([x, np.array([1.0])], axis=0)
     return np.column_stack([x, np.ones(x.shape[0])])
 
@@ -50,7 +50,7 @@ def calc_rt(E, K1, K2, q1, q2):
 
     def sum_z_cal_relative_scale(R, t):
         pose = pose_rt(R, t)
-        hom_q1 = triangulate_pts(P1, P2 @ pose, q1, q2).T 
+        hom_q1 = triangulate_pts(P1, P2 @ pose, q1, q2).T
         hom_q2 = pose @ hom_q1
         uhom_q1 = hom_q1[:3, :] / (hom_q1[3, :] + 1e-24)
         uhom_q2 = hom_q2[:3, :] / (hom_q2[3, :] + 1e-24)
@@ -61,7 +61,7 @@ def calc_rt(E, K1, K2, q1, q2):
 
     pairs = [[R1, t], [R1, -t], [R2, t], [R2, -t]]
     sumzs = []
-    for i, [R, t] in enumerate(pairs): 
+    for i, [R, t] in enumerate(pairs):
         sumzs.append((i, sum_z_cal_relative_scale(R, t)))
 
     j, _ = max(sumzs, key=lambda x: x[1])
@@ -87,7 +87,7 @@ class EssentialMatrixTransform(object):
         A[:, 6:8] *= src
 
         _, _, VT = np.linalg.svd(A)
-        F = VT[-1].reshape(3, 3) 
+        F = VT[-1].reshape(3, 3)
 
         U, S, VT = np.linalg.svd(F)
         S[0] = S[1] = (S[0] + S[1]) / 2.0

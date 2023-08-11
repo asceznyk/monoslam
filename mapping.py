@@ -33,7 +33,7 @@ class Point:
 
 class Map:
     def __init__(self):
-        self.frames = [] 
+        self.frames = []
         self.points = []
 
     def add_frame(self, frame):

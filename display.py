@@ -35,7 +35,7 @@ class DisplayMap:
         self.dcam = pangolin.CreateDisplay()
         self.dcam.SetBounds(0.0, 1.0, 0.0, 1.0, w/h)
         self.dcam.SetHandler(self.handler)
-        self.dcam.Activate() 
+        self.dcam.Activate()
 
     def viewer_refresh(self, q):
         while not q.empty():

@@ -5,7 +5,7 @@ from skimage.measure import ransac
 from scipy.spatial import cKDTree
 
 from constants import *
-from utils import EssentialMatrixTransform, calc_rt, normalize, add_ones 
+from utils import EssentialMatrixTransform, calc_rt, normalize, add_ones
 
 def ext_features(img, max_corners=3000):
     orb = cv2.ORB_create()

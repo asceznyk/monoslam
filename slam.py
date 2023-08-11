@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from utils import *
-from frame import * 
+from frame import *
 from mapping import *
 from display import *
 
@@ -19,7 +19,7 @@ class SLAM:
         self.H = H
         self.K = K
 
-        self.graph = Map() 
+        self.graph = Map()
 
     def process_frame(self, img):
         frame = Frame(self.graph, img, self.K)
@@ -27,13 +27,13 @@ class SLAM:
             return
 
         f1 = self.graph.frames[-1]
-        f2 = self.graph.frames[-2] 
+        f2 = self.graph.frames[-2]
 
         idx1, idx2, P = match_frames(f1, f2)
         f1.pose = P @ f2.pose
 
         for i, idx in enumerate(idx2):
-            if f1.pts[idx1[i]] is None and f2.pts[idx] is not None: 
+            if f1.pts[idx1[i]] is None and f2.pts[idx] is not None:
                 f2.pts[idx].add(f1, idx1[i])
 
         sbp_pts_cnt = 0
@@ -59,9 +59,9 @@ class SLAM:
                             break
 
         good_pts4d = np.array([f1.pts[i] is None for i in idx1])
-        pts4d = triangulate_pts(f1.pose, f2.pose, f1.kps[idx1], f2.kps[idx2]) 
+        pts4d = triangulate_pts(f1.pose, f2.pose, f1.kps[idx1], f2.kps[idx2])
         good_pts4d &= np.abs(pts4d[:, 3]) != 0
-        pts4d /= pts4d[:, 3:] 
+        pts4d /= pts4d[:, 3:]
 
         new_pts_cnt = 0
         rejected_pts_cnt = 0
@@ -83,7 +83,7 @@ class SLAM:
                 rejected_pts_cnt += 1
                 continue
 
-            kppx = f1.kppx[idx1[i]] 
+            kppx = f1.kppx[idx1[i]]
             pt = Point(self.graph, p[:3], img[int(round(kppx[1])), int(round(kppx[0]))])
             pt.add(f1, idx1[i])
             pt.add(f2, idx2[i])
@@ -124,12 +124,11 @@ def main(video_path, focal_length=524):
     f = 0
     while ret:
         ret, img = cap.read()
+        if not ret: break
         img = cv2.resize(img, (W, H))
-        if ret:
-            print(f'{f}/{count}')
-            slam.process_frame(img)
+        print(f'{f}/{count}')
+        slam.process_frame(img)
         f += 1
-
         disp_map.paint(slam.graph)
 
 if __name__ == '__main__':
